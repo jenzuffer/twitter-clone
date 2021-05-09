@@ -21,7 +21,27 @@ public class UserManagementImpl implements UserManagement {
 
     @Override
     public boolean createUser(UserCreation userCreation) {
-        throw new UnsupportedOperationException("Not yet implemented");
+
+    try(var tran = jedis.multi()){
+        var respone = tran.sismember("users",userCreation.username);
+        tran.exec();
+
+        if(!respone.get()){
+
+            tran.sadd("users",userCreation.username);
+            tran.exec();
+            return true;
+
+        }
+
+
+        return false;
+
+
+    }
+
+
+
     }
 
     @Override
