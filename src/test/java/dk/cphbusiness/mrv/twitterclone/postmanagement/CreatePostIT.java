@@ -44,7 +44,6 @@ public class CreatePostIT extends TestBase {
         um.createUser(albert);
         time.setCurrentTime(1000);
         String post = "this is a nice post, tweeet tweet";
-
         // Act
         var result = pm.createPost(albert.username, post);
 
