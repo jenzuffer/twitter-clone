@@ -55,7 +55,6 @@ public class UserManagementImpl implements UserManagement {
         String json = jedis.get(username);
         Gson gson = new Gson();
         UserCreation userCreation = gson.fromJson(json, UserCreation.class);
-        System.out.println("users: " + userCreation.username);
         return new UserOverview(userCreation.username, userCreation.firstname, userCreation.lastname, 0, 0);
     }
 
