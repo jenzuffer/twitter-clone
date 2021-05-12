@@ -23,4 +23,9 @@ public class UserCreation {
         this.birthday = birthday;
         this.posts = new ArrayList<>();
     }
+
+    public String toString(){
+        return "username: " + username + " firstname: " + firstname + " lastname: " + lastname + " passwordhash: " +
+                passwordHash + " birthday: " + birthday;
+    }
 }

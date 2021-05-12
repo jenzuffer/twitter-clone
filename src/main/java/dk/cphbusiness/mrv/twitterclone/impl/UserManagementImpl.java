@@ -6,10 +6,7 @@ import dk.cphbusiness.mrv.twitterclone.dto.UserCreation;
 import dk.cphbusiness.mrv.twitterclone.dto.UserOverview;
 import dk.cphbusiness.mrv.twitterclone.dto.UserUpdate;
 import dk.cphbusiness.mrv.twitterclone.util.Time;
-import redis.clients.jedis.AccessControlUser;
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.Response;
-import redis.clients.jedis.Transaction;
+import redis.clients.jedis.*;
 
 import java.util.List;
 import java.util.Map;
@@ -18,9 +15,17 @@ import java.util.Set;
 public class UserManagementImpl implements UserManagement {
 
     private Jedis jedis;
+    private Subscriber subscriber;
 
     public UserManagementImpl(Jedis jedis) {
+        this.subscriber = new Subscriber();
         this.jedis = jedis;
+    }
+
+    public void setUserCreation(UserCreation userCreation) {
+        Gson gson = new Gson();
+        String json = gson.toJson(userCreation);
+        jedis.set(userCreation.username, json);
     }
 
     @Override
@@ -28,9 +33,7 @@ public class UserManagementImpl implements UserManagement {
         String json = jedis.get(userCreation.username);
         //var respone = jedis.sismember("users", userCreation.username);
         if (json == null || json.isEmpty()) {
-            Gson gson = new Gson();
-            json = gson.toJson(userCreation);
-            jedis.set(userCreation.username, json);
+            setUserCreation(userCreation);
             /*
             try (var tran = jedis.multi()) {
                 tran.sadd("users", userCreation.username);
@@ -53,34 +56,76 @@ public class UserManagementImpl implements UserManagement {
     @Override
     public UserOverview getUserOverview(String username) {
         String json = jedis.get(username);
+        if (json == null || json.isEmpty()) return null;
         Gson gson = new Gson();
         UserCreation userCreation = gson.fromJson(json, UserCreation.class);
-        return new UserOverview(userCreation.username, userCreation.firstname, userCreation.lastname, 0, 0);
+        String strFollow = "user " + username;
+        String strFollowers = "following " + username;
+        System.out.println("getUserOverview: " + userCreation.toString());
+        UserOverview userOverview = new UserOverview(username, userCreation.firstname, userCreation.lastname,
+                jedis.smembers(strFollowers).size(), jedis.smembers(strFollow).size());
+        return userOverview;
     }
 
     @Override
     public boolean updateUser(UserUpdate userUpdate) {
-        throw new UnsupportedOperationException("Not yet implemented");
+        String json = jedis.get(userUpdate.username);
+        if (json == null || json.isEmpty()) return false;
+        Gson gson = new Gson();
+        UserCreation userCreation = gson.fromJson(json, UserCreation.class);
+        String birthday = userUpdate.birthday;
+        if (birthday != null)
+            userCreation.birthday = birthday;
+        String firstname = userUpdate.firstname;
+        if (firstname != null)
+            userCreation.firstname = firstname;
+        String lastname = userUpdate.lastname;
+        if (lastname != null)
+            userCreation.lastname = lastname;
+        System.out.println("updateUser: " + userCreation.toString());
+        json = gson.toJson(userCreation);
+        jedis.set(userCreation.username, json);
+        return true;
     }
 
     @Override
     public boolean followUser(String username, String usernameToFollow) {
-        throw new UnsupportedOperationException("Not yet implemented");
+        String json = jedis.get(username);
+        String json1 = jedis.get(usernameToFollow);
+        if (json == null || json.isEmpty() || json1 == null || json1.isEmpty()) return false;
+
+        String strFollowing = "user " + username;
+        String strFollowers = "following " + usernameToFollow;
+        jedis.sadd(strFollowing, usernameToFollow);
+        //jedis.subscribe(subscriber, username, usernameToFollow);
+        jedis.sadd(strFollowers, username);
+        return true;
     }
 
     @Override
     public boolean unfollowUser(String username, String usernameToUnfollow) {
-        throw new UnsupportedOperationException("Not yet implemented");
+        String json = jedis.get(username);
+        String json1 = jedis.get(usernameToUnfollow);
+        if (json == null || json.isEmpty() || json1 == null || json1.isEmpty()) return false;
+        String strFollowing = "user " + username;
+        jedis.srem(strFollowing, usernameToUnfollow);
+        return true;
     }
 
     @Override
     public Set<String> getFollowedUsers(String username) {
-        throw new UnsupportedOperationException("Not yet implemented");
+        String strFollow = "user " + username;
+        String json = jedis.get(username);
+        if (json == null || json.isEmpty()) return null;
+        return jedis.smembers(strFollow);
     }
 
     @Override
     public Set<String> getUsersFollowing(String username) {
-        throw new UnsupportedOperationException("Not yet implemented");
+        String json = jedis.get(username);
+        if (json == null || json.isEmpty()) return null;
+        String strFollowers = "following " + username;
+        return jedis.smembers(strFollowers);
     }
 
 }
