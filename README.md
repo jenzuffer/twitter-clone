@@ -10,3 +10,10 @@ You are allowed to change the interface and DTOs, just write a small readme list
 
 ## Task 3
 In a readme, write a short explanation of your redis data model. It should be clear enough for a developer to be able to implement the same thing.
+
+redis data model: Our attempt focuses on jsonifying the values in the jedis keyvalue map. We make
+use of redis sets and getting information about members of sets to keep track of states. 
+We would condeem sets and json as sufficient for representing the wished behvaiour. We also tried
+implementing an actual jediPubSub which we called subscribe but did not get to use it. 
+Essentially we just use strings to keep track of users followers and users following with strings and 
+usernames. These are stored in sets to be kept track of. 
